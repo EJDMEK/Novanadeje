@@ -22,7 +22,7 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
+        # Odstranil jsem cache: 'npm' - to způsobovalo problém
         
     - name: Extract ZIP file
       run: |
@@ -32,6 +32,7 @@ jobs:
         mv ./extracted/* ./
         rm -rf ./extracted
         echo "Files extracted successfully"
+        ls -la
         
     - name: Build Frontend
       run: |
