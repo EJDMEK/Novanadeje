@@ -1,0 +1,85 @@
+name: Deploy from ZIP
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      zip_file:
+        description: 'ZIP file path'
+        required: true
+        default: 'project.zip'
+
+jobs:
+  extract-and-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Extract ZIP file
+      run: |
+        echo "Extracting project files..."
+        unzip -o ${{ github.event.inputs.zip_file || 'project.zip' }} -d ./extracted
+        ls -la ./extracted
+        mv ./extracted/* ./
+        rm -rf ./extracted
+        echo "Files extracted successfully"
+        
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+        echo "Frontend build completed"
+        
+    - name: Prepare Backend
+      run: |
+        cd backend
+        npm ci --only=production
+        echo "Backend prepared successfully"
+        
+    - name: Upload Frontend Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/dist/
+        retention-days: 1
+        
+    - name: Upload Backend Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-files
+        path: backend/
+        retention-days: 1
+        
+  deploy:
+    needs: extract-and-build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Download Frontend Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/dist/
+        
+    - name: Download Backend Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-files
+        path: backend/
+        
+    - name: Deploy to Server
+      run: |
+        echo "Deploying to server..."
+        # Zde přidejte vaše deploy příkazy
+        echo "Deploy completed"
